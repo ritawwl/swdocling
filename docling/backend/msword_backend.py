@@ -912,10 +912,26 @@ class MsWordDocumentBackend(DeclarativeDocumentBackend):
         is_numbered: bool = False,
     ) -> None:
         enum_marker = ""
-
         level = self._get_level()
         prev_indent = self._prev_indent()
-        if self._prev_numid() is None:  # Open new list
+
+        new_list = False
+        # check if new style list begins, and close last list
+        if self._prev_numid() is not None and self._prev_numid() != numid:
+            # close list
+            if self.level_at_new_list:
+                for key in range(len(self.parents)):
+                    if key >= self.level_at_new_list:
+                        self.parents[key] = None
+                self.level = self.level_at_new_list - 1
+                self.level_at_new_list = None
+            else:
+                for key in range(len(self.parents)):
+                    self.parents[key] = None
+                self.level = 0
+            new_list = True
+
+        if self._prev_numid() is None or new_list:  # Open new list
             self.level_at_new_list = level
 
             self.parents[level] = doc.add_group(
